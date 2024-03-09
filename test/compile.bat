@@ -18,6 +18,10 @@ if defined install_path (
     exit /b 1
 )
 
-CL /Ox /I../include test1.cpp
+DEL *.exe
 
-DEL *.exp *.lib *.obj
+CL /Fe:test1 /std:c++17 /Ox /I../include /I../externals/mpc/ ../externals/mpc/mpc.c test1.cpp
+
+DEL *.exp *.lib *.obj 
+
+test1.exe
