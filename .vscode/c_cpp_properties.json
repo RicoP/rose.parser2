@@ -5,6 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/externals/mpc",
+                "${workspaceFolder}/include",
             ],
             "defines": [
                 "_DEBUG",
