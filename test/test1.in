@@ -6,6 +6,15 @@
 #include "stdio.h"
 #include <math.h>
 
+struct Vec2 {
+  int x;
+  int y;
+};
+
+struct Vec3 {
+  float x,y = 0,z;
+};
+
 //
 // Hello World
 

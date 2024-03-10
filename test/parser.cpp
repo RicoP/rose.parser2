@@ -55,6 +55,7 @@ int main() {
         { "number"              ,R"XXX( <float> | <integer> )XXX" },
         { "character"           ,R"XXX( /'(\\.|[^'])*'/ )XXX" },
         { "string"              ,R"XXX( /"(\\.|[^"])*"/ )XXX" },
+        { "assignment"          ,R"XXX( '=' <lexp> )XXX" },
 
         { "factor"              ,R"XXX( '(' <lexp> ')'
                                       | <number>
@@ -71,7 +72,7 @@ int main() {
                                       | "while" '(' <condition> ')' <stmt>
                                       | "do" <stmt> "while" '(' <condition> ')' ';'
                                       | "if"    '(' <condition> ')' <stmt>
-                                      | <ident> '=' <lexp> ';'
+                                      | <ident> <assignment> ';'
                                       | "print" '(' <lexp>? ')' ';'
                                       | "return" <lexp>? ';'
                                       | <ident> '(' <ident>? (',' <ident>)* ')' ';' 
@@ -86,18 +87,28 @@ int main() {
 
         { "condition"           ,R"XXX( <exp> | <ident> | <integer> | '!' <condition> )XXX" },
 
-        { "typeident"           ,R"XXX( <type> <ident> )XXX" }, 
-        { "declaration"         ,R"XXX( <typeident> ('=' <lexp>)? ';' )XXX" },
+        { "typevar"             ,R"XXX( <ident> <assignment>? )XXX" }, 
+        { "typeident"           ,R"XXX( <type> <typevar> (',' <typevar>)* )XXX" }, 
+        { "declaration"         ,R"XXX( <typeident> ';' )XXX" },
+        
         { "args"                ,R"XXX( <typeident>? (',' <typeident>)* )XXX" },
         { "body"                ,R"XXX( '{' <stmt>* '}' )XXX" },
         { "function_ident"      ,R"XXX( <ident> )XXX" },
         { "function_prefix"     ,R"XXX( "inline" | "static" | "constexpr" | "consteval" )XXX" },
         { "function"            ,R"XXX( <function_prefix>* <type> <function_ident> '(' <args> ')' (<body> | ';') )XXX" },
-        { "include1"            ,R"XXX( "#include" <string> )XXX" },
-        { "include2"            ,R"XXX( "#include" '<' /(\\.|[^">])*/ '>' )XXX" },
+
+        { "record_struct"       ,R"XXX( "struct" )XXX" },
+        { "record_class"        ,R"XXX( "class" )XXX" },
+        { "record_decl"         ,R"XXX( <record_struct> | <record_class> )XXX" },
+        { "record_name"         ,R"XXX( <ident> )XXX" },
+        { "class_body"          ,R"XXX( '{' <declaration>* '}' )XXX" },
+        { "record"              ,R"XXX( <record_decl> <record_name>? <class_body>? <ident>? ';' )XXX" },
+
+        { "include1"            ,R"XXX( "#include" '"' /(\\.|[^"])*/ '"' )XXX" },
+        { "include2"            ,R"XXX( "#include" '<' /(\\.|[^>])*/ '>' )XXX" },
         { "include"             ,R"XXX( <include1> | <include2> )XXX" },
         { "macro"               ,R"XXX( "#" /[^\r\n]*/ )XXX" },
-        { "smallc"              ,R"XXX( /^/ (<include> | <macro> | <comment> | <declaration> | <function>)* /$/ )XXX" },
+        { "smallc"              ,R"XXX( /^/ (<include> | <record> | <macro> | <comment> | <declaration> | <function>)* /$/ )XXX" },
     };
 
     mpc_parser_t * parser_array[array_size(config) + 1];
