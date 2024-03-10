@@ -1,5 +1,6 @@
 #include "test1.h"
 #include <mpc.h>
+#include <algorithm>
 
 RSerializeResult foo(Vector3 & v, RSerilalizer & serializer) {
     return serialize(v, serializer);
@@ -9,27 +10,54 @@ RSerializeResult bar(Matrix44 & m, RSerilalizer & serializer) {
     return serialize(m, serializer);
 }
 
+int  s_language_length = 0;
+char s_language[2048];
+
+struct MpcConfig {
+    const char * name;
+    const char * expression;
+    mpc_parser_t * parser = nullptr;
+
+    MpcConfig(const char * name, const char * expression) : name(name), expression(expression) {
+        int len = sprintf(s_language + s_language_length, "%s : %s;\n", name, expression);
+        parser = mpc_new(name);
+        s_language_length += len;
+    }
+};
+
+extern "C" mpc_err_t *mpca_lang_arr(int flags, const char *language, mpc_parser_t ** array);
+extern "C" void mpc_cleanup_arr(mpc_parser_t ** array);
+
+template<class T, int N>
+constexpr int array_size(T (&)[N]) { return N; }
+
 int main() {
     Vector3 v;
+#if 1
+    MpcConfig config[] = {
+        { "expression", "<product> (('+' | '-') <product>)*" },
+        { "product", "<value>   (('*' | '/')   <value>)*" },
+        { "value", "/[0-9]+/ | '(' <expression> ')'" },
+        { "maths", "/^/ <expression> /$/" }
+    };
 
+    mpc_parser_t * parser_array[array_size(config) + 1];
+    for(int i = 0; i != array_size(parser_array); ++i) {
+        int max = array_size(config);
+        parser_array[i] = i < max ? config[i].parser : nullptr;
+    }
 
-#if 0
+    puts(s_language);
+    
+    mpc_parser_t *Maths = std::find_if(
+        std::begin(config), 
+        std::end(config), 
+        [](auto & v) { return 0 == strcmp(v.name, "maths"); }
+    )->parser;
 
-    mpc_parser_t *Expr  = mpc_new("expression");
-    mpc_parser_t *Prod  = mpc_new("product");
-    mpc_parser_t *Value = mpc_new("value");
-    mpc_parser_t *Maths = mpc_new("maths");
-
-    mpca_lang(MPCA_LANG_DEFAULT, R"LANGUAGE(
-        expression : <product> (('+' | '-') <product>)*; 
-        product    : <value>   (('*' | '/')   <value>)*; 
-        value      : /[0-9]+/ | '(' <expression> ')';    
-        maths      : /^/ <expression> /$/;               
-    )LANGUAGE",
-    Expr, Prod, Value, Maths, NULL);
+    mpca_lang_arr(MPCA_LANG_DEFAULT, s_language, parser_array);
     const char * input = "(4 * 2 * 11 + 2) - 5";
     mpc_result_t r;
-
 
     if (mpc_parse("input", input, Maths, &r)) {
         mpc_ast_print((mpc_ast_t *)r.output);
@@ -39,8 +67,8 @@ int main() {
         mpc_err_delete(r.error);
     }
 
-    mpc_cleanup(4, Expr, Prod, Value, Maths);
-
+    //mpc_cleanup(4, config[0].parser, config[1].parser, config[2].parser, config[3].parser);
+    mpc_cleanup_arr(parser_array);
 #else
 
     mpc_parser_t *Qscript = mpc_new("qscript");
