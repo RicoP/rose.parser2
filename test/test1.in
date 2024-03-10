@@ -23,7 +23,8 @@ inline static int fib(int n) {
 // Hallo Ballo
 
 int main() {
-  
+  char c = 'c';
+  char c2 = 'rico';
   int n;
   int i = 0;
   

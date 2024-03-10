@@ -53,7 +53,7 @@ int main() {
         { "float"               ,R"XXX( /-?\d?.\d+[f]?/ )XXX" },
         { "integer"             ,R"XXX( /-?\d+/ )XXX" },
         { "number"              ,R"XXX( <float> | <integer> )XXX" },
-        { "character"           ,R"XXX( /'.'/ )XXX" },
+        { "character"           ,R"XXX( /'(\\.|[^'])*'/ )XXX" },
         { "string"              ,R"XXX( /"(\\.|[^"])*"/ )XXX" },
 
         { "factor"              ,R"XXX( '(' <lexp> ')'
@@ -86,7 +86,7 @@ int main() {
 
         { "condition"           ,R"XXX( <exp> | <ident> | <integer> | '!' <condition> )XXX" },
 
-        { "typeident"           ,R"XXX( <type> <ident> )XXX" },
+        { "typeident"           ,R"XXX( <type> <ident> )XXX" }, 
         { "declaration"         ,R"XXX( <typeident> ('=' <lexp>)? ';' )XXX" },
         { "args"                ,R"XXX( <typeident>? (',' <typeident>)* )XXX" },
         { "body"                ,R"XXX( '{' <stmt>* '}' )XXX" },
