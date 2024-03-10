@@ -1,13 +1,19 @@
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 #include "stdio.h"
 #include <math.h>
 
 //
 // Hello World
 
+void A();
 void foo();
 void baz() {}
 
-int fib(int n) {
+inline static int fib(int n) {
   if (n == 0) { return 0; } 
   if (n == 1) { return 1; }
   return fib(n - 1) + fib(n - 2);
@@ -34,6 +40,23 @@ int main() {
   int x = -42;
   float y = 3.14f;
   double z = .001;
+
+  x = y;
+  int i = k;
+  int k = i+k-k / 42;
+
+  if(x < y) {  print("Hi!");  }
+  if(y >= x);
+  if(y >= x) {return 0; }
+
+  if(0 < y) {  print("Hi!");  }
+  if(y >= 0);
+  if(1 >= 0) {return 0; }
+
+  if(x) { return 0; }
+  if(!x) { return 0; }
+  if(!!x) { return 0; }
+
 
   return 0;
 }

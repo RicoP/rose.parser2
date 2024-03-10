@@ -68,13 +68,14 @@ int main() {
 
         { "stmt"                ,R"XXX( '{' <stmt>* '}'
                                       | <declaration>
-                                      | "while" '(' <exp> ')' <stmt>
+                                      | "while" '(' <condition> ')' <stmt>
                                       | "do" <stmt> "while" '(' <condition> ')' ';'
-                                      | "if"    '(' <exp> ')' <stmt>
+                                      | "if"    '(' <condition> ')' <stmt>
                                       | <ident> '=' <lexp> ';'
                                       | "print" '(' <lexp>? ')' ';'
                                       | "return" <lexp>? ';'
-                                      | <ident> '(' <ident>? (',' <ident>)* ')' ';' )XXX" },
+                                      | <ident> '(' <ident>? (',' <ident>)* ')' ';' 
+                                      | ';' )XXX" },
 
         { "exp"                 ,R"XXX( <lexp> '>' <lexp>
                                       | <lexp> '<' <lexp>
@@ -83,18 +84,20 @@ int main() {
                                       | <lexp> "!=" <lexp>
                                       | <lexp> "==" <lexp> )XXX" },
 
-        { "condition"           ,R"XXX( <exp> | <ident> | <integer> )XXX" },
+        { "condition"           ,R"XXX( <exp> | <ident> | <integer> | '!' <condition> )XXX" },
 
         { "typeident"           ,R"XXX( <type> <ident> )XXX" },
-        { "declaration"         ,R"XXX( <typeident> ('=' <number>)? ';' )XXX" },
+        { "declaration"         ,R"XXX( <typeident> ('=' <lexp>)? ';' )XXX" },
         { "args"                ,R"XXX( <typeident>? (',' <typeident>)* )XXX" },
         { "body"                ,R"XXX( '{' <stmt>* '}' )XXX" },
         { "function_ident"      ,R"XXX( <ident> )XXX" },
-        { "function"            ,R"XXX( <type> <function_ident> '(' <args> ')' (<body> | ';') )XXX" },
+        { "function_prefix"     ,R"XXX( "inline" | "static" | "constexpr" | "consteval" )XXX" },
+        { "function"            ,R"XXX( <function_prefix>* <type> <function_ident> '(' <args> ')' (<body> | ';') )XXX" },
         { "include1"            ,R"XXX( "#include" <string> )XXX" },
         { "include2"            ,R"XXX( "#include" '<' /(\\.|[^">])*/ '>' )XXX" },
         { "include"             ,R"XXX( <include1> | <include2> )XXX" },
-        { "smallc"              ,R"XXX( /^/ (<include> | <comment> | <declaration> | <function>)* /$/ )XXX" },
+        { "macro"               ,R"XXX( "#" /[^\r\n]*/ )XXX" },
+        { "smallc"              ,R"XXX( /^/ (<include> | <macro> | <comment> | <declaration> | <function>)* /$/ )XXX" },
     };
 
     mpc_parser_t * parser_array[array_size(config) + 1];
