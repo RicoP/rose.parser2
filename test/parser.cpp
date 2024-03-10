@@ -43,38 +43,37 @@ int main() {
         { "string"    , R"XXX( /"(\\.|[^"])*"/ )XXX" },
 
         { "factor"    , R"XXX( '(' <lexp> ')'
-                | <number>
-                | <character>
-                | <string>
-                | <ident> '(' <lexp>? (',' <lexp>)* ')'
-                | <ident> )XXX" },
+                             | <number>
+                             | <character>
+                             | <string>
+                             | <ident> '(' <lexp>? (',' <lexp>)* ')'
+                             | <ident> )XXX" },
 
         { "term"      , R"XXX( <factor> (('*' | '/' | '%') <factor>)* )XXX" },
         { "lexp"      , R"XXX( <term> (('+' | '-') <term>)* )XXX" },
 
         { "stmt"      , R"XXX( '{' <stmt>* '}'
-                | "while" '(' <exp> ')' <stmt>
-                | "if"    '(' <exp> ')' <stmt>
-                | <ident> '=' <lexp> ';'
-                | "print" '(' <lexp>? ')' ';'
-                | "return" <lexp>? ';'
-                | <ident> '(' <ident>? (',' <ident>)* ')' ';' )XXX" },
+                             | "while" '(' <exp> ')' <stmt>
+                             | "if"    '(' <exp> ')' <stmt>
+                             | <ident> '=' <lexp> ';'
+                             | "print" '(' <lexp>? ')' ';'
+                             | "return" <lexp>? ';'
+                             | <ident> '(' <ident>? (',' <ident>)* ')' ';' )XXX" },
 
         { "exp"       , R"XXX( <lexp> '>' <lexp>
-                | <lexp> '<' <lexp>
-                | <lexp> ">=" <lexp>
-                | <lexp> "<=" <lexp>
-                | <lexp> "!=" <lexp>
-                | <lexp> "==" <lexp> )XXX" },
+                             | <lexp> '<' <lexp>
+                             | <lexp> ">=" <lexp>
+                             | <lexp> "<=" <lexp>
+                             | <lexp> "!=" <lexp>
+                             | <lexp> "==" <lexp> )XXX" },
 
         { "typeident" , R"XXX( ("int" | "char") <ident> )XXX" },
         { "decls"     , R"XXX( (<typeident> ';')* )XXX" },
         { "args"      , R"XXX( <typeident>? (',' <typeident>)* )XXX" },
         { "body"      , R"XXX( '{' <decls> <stmt>* '}' )XXX" },
         { "procedure" , R"XXX( ("int" | "char") <ident> '(' <args> ')' <body> )XXX" },
-        { "main"      , R"XXX( "main" '(' ')' <body> )XXX" },
         { "includes"  , R"XXX( ("#include" <string>)* )XXX" },
-        { "smallc"    , R"XXX( /^/ <includes> <decls> <procedure>* <main> /$/ )XXX" },
+        { "smallc"    , R"XXX( /^/ <includes> <decls> <procedure>* /$/ )XXX" },
     };
 
     mpc_parser_t * parser_array[array_size(config) + 1];
