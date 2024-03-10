@@ -14,66 +14,79 @@ void baz() {
     Vector3 v;
 }
 
-int  s_language_length = 0;
-char s_language[10 * 1024];
-
-struct MpcConfig {
-    const char * name;
-    const char * expression;
-    mpc_parser_t * parser = nullptr;
-
-    MpcConfig(const char * name, const char * expression) : name(name), expression(expression) {
-        int len = sprintf(s_language + s_language_length, "%s : %s;\n", name, expression);
-        parser = mpc_new(name);
-        s_language_length += len;
-    }
-};
-
 extern "C" mpc_err_t *mpca_lang_arr(int flags, const char *language, mpc_parser_t ** array);
 extern "C" void mpc_cleanup_arr(mpc_parser_t ** array);
 
 template<class T, int N>
 constexpr int array_size(T (&)[N]) { return N; }
 
+int  s_language_length = 0;
+char s_language[10 * 1024];
+
+struct MpcConfig {
+    const char * name = nullptr;
+    const char * expression = nullptr;
+    mpc_parser_t * parser = nullptr;
+
+    MpcConfig(const char * name, const char * expression) : name(name), expression(expression) {
+        char * buffer = s_language + s_language_length;
+        int buffer_length = array_size(s_language) - s_language_length;
+        int len = snprintf(buffer, buffer_length, "%s : %s;\n", name, expression);
+
+        if(len >= buffer_length) {
+            puts("buffer not big enough!");
+            exit(1);
+        }
+
+        parser = mpc_new(name);
+        s_language_length += len;
+    }
+};
+
 int main() {
     MpcConfig config[] = {
-        { "ident"     , R"XXX( /[a-zA-Z_][a-zA-Z0-9_]*/ )XXX" },
-        { "number"    , R"XXX( /[0-9]+/ )XXX" },
-        { "character" , R"XXX( /'.'/ )XXX" },
-        { "string"    , R"XXX( /"(\\.|[^"])*"/ )XXX" },
+        { "ident"     ,          R"XXX( /[a-zA-Z_][a-zA-Z0-9_]*/ )XXX" },
+        { "type"     ,          R"XXX( <ident> )XXX" },
+        { "float"    ,          R"XXX( /-?\d.\d+/ 'f'? )XXX" },
+        { "integer"    ,          R"XXX( /-?\d+/ )XXX" },
+        { "number"    ,          R"XXX( <float> | <integer> )XXX" },
+        { "character" ,          R"XXX( /'.'/ )XXX" },
+        { "string"    ,          R"XXX( /"(\\.|[^"])*"/ )XXX" },
 
-        { "factor"    , R"XXX( '(' <lexp> ')'
-                             | <number>
-                             | <character>
-                             | <string>
-                             | <ident> '(' <lexp>? (',' <lexp>)* ')'
-                             | <ident> )XXX" },
+        { "factor"    ,          R"XXX( '(' <lexp> ')'
+                                      | <number>
+                                      | <character>
+                                      | <string>
+                                      | <ident> '(' <lexp>? (',' <lexp>)* ')'
+                                      | <ident> )XXX" },
 
-        { "term"      , R"XXX( <factor> (('*' | '/' | '%') <factor>)* )XXX" },
-        { "lexp"      , R"XXX( <term> (('+' | '-') <term>)* )XXX" },
+        { "term"      ,          R"XXX( <factor> (('*' | '/' | '%') <factor>)* )XXX" },
+        { "lexp"      ,          R"XXX( <term> (('+' | '-') <term>)* )XXX" },
 
-        { "stmt"      , R"XXX( '{' <stmt>* '}'
-                             | "while" '(' <exp> ')' <stmt>
-                             | "if"    '(' <exp> ')' <stmt>
-                             | <ident> '=' <lexp> ';'
-                             | "print" '(' <lexp>? ')' ';'
-                             | "return" <lexp>? ';'
-                             | <ident> '(' <ident>? (',' <ident>)* ')' ';' )XXX" },
+        { "stmt"      ,          R"XXX( '{' <stmt>* '}'
+                                      | <declaration>
+                                      | "while" '(' <exp> ')' <stmt>
+                                      | "if"    '(' <exp> ')' <stmt>
+                                      | <ident> '=' <lexp> ';'
+                                      | "print" '(' <lexp>? ')' ';'
+                                      | "return" <lexp>? ';'
+                                      | <ident> '(' <ident>? (',' <ident>)* ')' ';' )XXX" },
 
-        { "exp"       , R"XXX( <lexp> '>' <lexp>
-                             | <lexp> '<' <lexp>
-                             | <lexp> ">=" <lexp>
-                             | <lexp> "<=" <lexp>
-                             | <lexp> "!=" <lexp>
-                             | <lexp> "==" <lexp> )XXX" },
+        { "exp"       ,          R"XXX( <lexp> '>' <lexp>
+                                      | <lexp> '<' <lexp>
+                                      | <lexp> ">=" <lexp>
+                                      | <lexp> "<=" <lexp>
+                                      | <lexp> "!=" <lexp>
+                                      | <lexp> "==" <lexp> )XXX" },
 
-        { "typeident" , R"XXX( ("int" | "char") <ident> )XXX" },
-        { "decls"     , R"XXX( (<typeident> ';')* )XXX" },
-        { "args"      , R"XXX( <typeident>? (',' <typeident>)* )XXX" },
-        { "body"      , R"XXX( '{' <decls> <stmt>* '}' )XXX" },
-        { "procedure" , R"XXX( ("int" | "char") <ident> '(' <args> ')' <body> )XXX" },
-        { "includes"  , R"XXX( ("#include" <string>)* )XXX" },
-        { "smallc"    , R"XXX( /^/ <includes> <decls> <procedure>* /$/ )XXX" },
+        { "typeident" ,          R"XXX( <type> <ident> )XXX" },
+        { "declaration",         R"XXX( <typeident> ('=' <number>)? ';' )XXX" },
+        { "args"      ,          R"XXX( <typeident>? (',' <typeident>)* )XXX" },
+        { "body"      ,          R"XXX( '{' <stmt>* '}' )XXX" },
+        { "function_ident" ,     R"XXX( <ident> )XXX" },
+        { "function" ,           R"XXX( <type> <function_ident> '(' <args> ')' (<body> | ';') )XXX" },
+        { "includes"  ,          R"XXX( ("#include" <string>)* )XXX" },
+        { "smallc"    ,          R"XXX( /^/ <includes> <declaration>* <function>* /$/ )XXX" },
     };
 
     mpc_parser_t * parser_array[array_size(config) + 1];
@@ -83,10 +96,10 @@ int main() {
     }
 
     //puts(s_language);
-    
+
     mpc_parser_t *Smallc = std::find_if(
-        std::begin(config), 
-        std::end(config), 
+        std::begin(config),
+        std::end(config),
         [](auto & v) { return 0 == strcmp(v.name, "smallc"); }
     )->parser;
 
