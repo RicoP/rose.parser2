@@ -46,11 +46,11 @@ struct MpcConfig {
 int main() {
     MpcConfig config[] = {
         { "linecomment"         ,R"XXX( "//" /[^\r\n]*/ )XXX" },
-        //{ "multilinecomment"    ,R"XXX( "/\*" .*? "*/\" )XXX" },
+        //{ "multilinecomment"    ,R"XXX( "/*" /[ \w\r\n]*?/ "*/" )XXX" },
         { "comment"             ,R"XXX( <linecomment> )XXX" },
         { "ident"               ,R"XXX( /[a-zA-Z_][a-zA-Z0-9_]*/ )XXX" },
         { "type"                ,R"XXX( <ident> )XXX" },
-        { "float"               ,R"XXX( /-?\d.\d+/ 'f'? )XXX" },
+        { "float"               ,R"XXX( /-?\d?.\d+[f]?/ )XXX" },
         { "integer"             ,R"XXX( /-?\d+/ )XXX" },
         { "number"              ,R"XXX( <float> | <integer> )XXX" },
         { "character"           ,R"XXX( /'.'/ )XXX" },
@@ -69,6 +69,7 @@ int main() {
         { "stmt"                ,R"XXX( '{' <stmt>* '}'
                                       | <declaration>
                                       | "while" '(' <exp> ')' <stmt>
+                                      | "do" <stmt> "while" '(' <condition> ')' ';'
                                       | "if"    '(' <exp> ')' <stmt>
                                       | <ident> '=' <lexp> ';'
                                       | "print" '(' <lexp>? ')' ';'
@@ -82,6 +83,8 @@ int main() {
                                       | <lexp> "!=" <lexp>
                                       | <lexp> "==" <lexp> )XXX" },
 
+        { "condition"           ,R"XXX( <exp> | <ident> | <integer> )XXX" },
+
         { "typeident"           ,R"XXX( <type> <ident> )XXX" },
         { "declaration"         ,R"XXX( <typeident> ('=' <number>)? ';' )XXX" },
         { "args"                ,R"XXX( <typeident>? (',' <typeident>)* )XXX" },
@@ -89,7 +92,8 @@ int main() {
         { "function_ident"      ,R"XXX( <ident> )XXX" },
         { "function"            ,R"XXX( <type> <function_ident> '(' <args> ')' (<body> | ';') )XXX" },
         { "include1"            ,R"XXX( "#include" <string> )XXX" },
-        { "include"             ,R"XXX( <include1> )XXX" },
+        { "include2"            ,R"XXX( "#include" '<' /(\\.|[^">])*/ '>' )XXX" },
+        { "include"             ,R"XXX( <include1> | <include2> )XXX" },
         { "smallc"              ,R"XXX( /^/ (<include> | <comment> | <declaration> | <function>)* /$/ )XXX" },
     };
 
