@@ -88,8 +88,9 @@ int main() {
         { "body"                ,R"XXX( '{' <stmt>* '}' )XXX" },
         { "function_ident"      ,R"XXX( <ident> )XXX" },
         { "function"            ,R"XXX( <type> <function_ident> '(' <args> ')' (<body> | ';') )XXX" },
-        { "includes"            ,R"XXX( ("#include" <string>)* )XXX" },
-        { "smallc"              ,R"XXX( /^/ <includes> <comment>* <declaration>* <function>* /$/ )XXX" },
+        { "include1"            ,R"XXX( "#include" <string> )XXX" },
+        { "include"             ,R"XXX( <include1> )XXX" },
+        { "smallc"              ,R"XXX( /^/ (<include> | <comment> | <declaration> | <function>)* /$/ )XXX" },
     };
 
     mpc_parser_t * parser_array[array_size(config) + 1];
