@@ -1,0 +1,122 @@
+> 
+  regex
+  includes|>
+    string:1:1 '#include'        
+    string|regex:1:10 '"stdio.h"'
+  procedure|>
+    string:3:1 'int'
+    ident|regex:3:5 'fib'        
+    char:3:8 '('
+    args|typeident|>
+      string:3:9 'int'
+      ident|regex:3:13 'n'       
+    char:3:14 ')'
+    body|>
+      char:3:16 '{'
+      stmt|>
+        string:4:3 'if'
+        char:4:6 '('
+        exp|>
+          lexp|term|factor|ident|regex:4:7 'n'
+          string:4:9 '=='
+          lexp|term|factor|number|regex:4:12 '0'
+        char:4:13 ')'
+        stmt|>
+          char:4:15 '{'
+          stmt|>
+            string:4:17 'return'
+            lexp|term|factor|number|regex:4:24 '0'
+            char:4:25 ';'
+          char:4:27 '}'
+      stmt|>
+        string:5:3 'if'
+        char:5:6 '('
+        exp|>
+          lexp|term|factor|ident|regex:5:7 'n'
+          string:5:9 '=='
+          lexp|term|factor|number|regex:5:12 '1'
+        char:5:13 ')'
+        stmt|>
+          char:5:15 '{'
+          stmt|>
+            string:5:17 'return'
+            lexp|term|factor|number|regex:5:24 '1'
+            char:5:25 ';'
+          char:5:27 '}'
+      stmt|>
+        string:6:3 'return'
+        lexp|>
+          term|factor|>
+            ident|regex:6:10 'fib'
+            char:6:13 '('
+            lexp|>
+              term|factor|ident|regex:6:14 'n'
+              char:6:16 '-'
+              term|factor|number|regex:6:18 '1'
+            char:6:19 ')'
+          char:6:21 '+'
+          term|factor|>
+            ident|regex:6:23 'fib'
+            char:6:26 '('
+            lexp|>
+              term|factor|ident|regex:6:27 'n'
+              char:6:29 '-'
+              term|factor|number|regex:6:31 '2'
+            char:6:32 ')'
+        char:6:33 ';'
+      char:7:1 '}'
+  main|>
+    string:9:1 'main'
+    char:9:5 '('
+    char:9:6 ')'
+    body|>
+      char:9:8 '{'
+      decls|>
+        typeident|>
+          string:11:3 'int'
+          ident|regex:11:7 'n'
+        char:11:8 ';'
+        typeident|>
+          string:12:3 'int'
+          ident|regex:12:7 'i'
+        char:12:8 ';'
+      stmt|>
+        string:14:3 'while'
+        char:14:9 '('
+        exp|>
+          lexp|term|factor|ident|regex:14:10 'i'
+          char:14:12 '<'
+          lexp|term|factor|number|regex:14:14 '10'
+        char:14:16 ')'
+        stmt|>
+          char:14:18 '{'
+          stmt|>
+            ident|regex:15:5 'n'
+            char:15:7 '='
+            lexp|term|factor|>
+              ident|regex:15:9 'fib'
+              char:15:12 '('
+              lexp|term|factor|number|regex:15:13 '10'
+              char:15:15 ')'
+            char:15:16 ';'
+          stmt|>
+            string:16:5 'print'
+            char:16:10 '('
+            lexp|term|factor|ident|regex:16:11 'n'
+            char:16:12 ')'
+            char:16:13 ';'
+          stmt|>
+            ident|regex:17:5 'i'
+            char:17:7 '='
+            lexp|>
+              term|factor|ident|regex:17:9 'i'
+              char:17:11 '+'
+              term|factor|number|regex:17:13 '1'
+            char:17:14 ';'
+          char:18:3 '}'
+      stmt|>
+        string:20:3 'return'
+        lexp|term|factor|number|regex:20:10 '0'
+        char:20:11 ';'
+      char:21:1 '}'
+  regex
