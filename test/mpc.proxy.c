@@ -1,5 +1,10 @@
 #include <mpc.c>
 
+#ifdef _WIN32
+#pragma warning( push )
+#pragma warning( disable : 4047)
+#endif 
+
 mpc_err_t *mpca_lang_arr(int flags, const char *language, mpc_parser_t ** array) {
   mpca_grammar_st_t st;
   mpc_input_t *i;
