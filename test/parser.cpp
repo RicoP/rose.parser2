@@ -45,25 +45,28 @@ struct MpcConfig {
 
 int main() {
     MpcConfig config[] = {
-        { "ident"     ,          R"XXX( /[a-zA-Z_][a-zA-Z0-9_]*/ )XXX" },
-        { "type"     ,          R"XXX( <ident> )XXX" },
-        { "float"    ,          R"XXX( /-?\d.\d+/ 'f'? )XXX" },
-        { "integer"    ,          R"XXX( /-?\d+/ )XXX" },
-        { "number"    ,          R"XXX( <float> | <integer> )XXX" },
-        { "character" ,          R"XXX( /'.'/ )XXX" },
-        { "string"    ,          R"XXX( /"(\\.|[^"])*"/ )XXX" },
+        { "linecomment"         ,R"XXX( "//" /[^\r\n]*/ )XXX" },
+        //{ "multilinecomment"    ,R"XXX( "/\*" .*? "*/\" )XXX" },
+        { "comment"             ,R"XXX( <linecomment> )XXX" },
+        { "ident"               ,R"XXX( /[a-zA-Z_][a-zA-Z0-9_]*/ )XXX" },
+        { "type"                ,R"XXX( <ident> )XXX" },
+        { "float"               ,R"XXX( /-?\d.\d+/ 'f'? )XXX" },
+        { "integer"             ,R"XXX( /-?\d+/ )XXX" },
+        { "number"              ,R"XXX( <float> | <integer> )XXX" },
+        { "character"           ,R"XXX( /'.'/ )XXX" },
+        { "string"              ,R"XXX( /"(\\.|[^"])*"/ )XXX" },
 
-        { "factor"    ,          R"XXX( '(' <lexp> ')'
+        { "factor"              ,R"XXX( '(' <lexp> ')'
                                       | <number>
                                       | <character>
                                       | <string>
                                       | <ident> '(' <lexp>? (',' <lexp>)* ')'
                                       | <ident> )XXX" },
 
-        { "term"      ,          R"XXX( <factor> (('*' | '/' | '%') <factor>)* )XXX" },
-        { "lexp"      ,          R"XXX( <term> (('+' | '-') <term>)* )XXX" },
+        { "term"                ,R"XXX( <factor> (('*' | '/' | '%') <factor>)* )XXX" },
+        { "lexp"                ,R"XXX( <term> (('+' | '-') <term>)* )XXX" },
 
-        { "stmt"      ,          R"XXX( '{' <stmt>* '}'
+        { "stmt"                ,R"XXX( '{' <stmt>* '}'
                                       | <declaration>
                                       | "while" '(' <exp> ')' <stmt>
                                       | "if"    '(' <exp> ')' <stmt>
@@ -72,21 +75,21 @@ int main() {
                                       | "return" <lexp>? ';'
                                       | <ident> '(' <ident>? (',' <ident>)* ')' ';' )XXX" },
 
-        { "exp"       ,          R"XXX( <lexp> '>' <lexp>
+        { "exp"                 ,R"XXX( <lexp> '>' <lexp>
                                       | <lexp> '<' <lexp>
                                       | <lexp> ">=" <lexp>
                                       | <lexp> "<=" <lexp>
                                       | <lexp> "!=" <lexp>
                                       | <lexp> "==" <lexp> )XXX" },
 
-        { "typeident" ,          R"XXX( <type> <ident> )XXX" },
-        { "declaration",         R"XXX( <typeident> ('=' <number>)? ';' )XXX" },
-        { "args"      ,          R"XXX( <typeident>? (',' <typeident>)* )XXX" },
-        { "body"      ,          R"XXX( '{' <stmt>* '}' )XXX" },
-        { "function_ident" ,     R"XXX( <ident> )XXX" },
-        { "function" ,           R"XXX( <type> <function_ident> '(' <args> ')' (<body> | ';') )XXX" },
-        { "includes"  ,          R"XXX( ("#include" <string>)* )XXX" },
-        { "smallc"    ,          R"XXX( /^/ <includes> <declaration>* <function>* /$/ )XXX" },
+        { "typeident"           ,R"XXX( <type> <ident> )XXX" },
+        { "declaration"         ,R"XXX( <typeident> ('=' <number>)? ';' )XXX" },
+        { "args"                ,R"XXX( <typeident>? (',' <typeident>)* )XXX" },
+        { "body"                ,R"XXX( '{' <stmt>* '}' )XXX" },
+        { "function_ident"      ,R"XXX( <ident> )XXX" },
+        { "function"            ,R"XXX( <type> <function_ident> '(' <args> ')' (<body> | ';') )XXX" },
+        { "includes"            ,R"XXX( ("#include" <string>)* )XXX" },
+        { "smallc"              ,R"XXX( /^/ <includes> <comment>* <declaration>* <function>* /$/ )XXX" },
     };
 
     mpc_parser_t * parser_array[array_size(config) + 1];
