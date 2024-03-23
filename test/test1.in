@@ -157,11 +157,17 @@ inline static int foobarX(int n /* a value / or something else */) {
   hello();
 }
 
-
 $  ( record_t {  } )
 struct Vector3 {
   private:
     int x,y,z;
+
+    // namespaces
+    ::float f = .3f;
+    std::string s1 = "Hello, world!\"";
+    ::std::string s2 = "Hello, world!\"";
+    ::rose::strings::const_string s3 = "Hello, world!\"";
+
   public:
     float sqrt_length() const { return x*x + y*y + z*z; }
     float length() const { return sqrt(sqrt_length()); }

@@ -95,7 +95,7 @@ enum sanitize_state {
     sanitize_state_single_line_comment,
     sanitize_state_multi_line_comment,
     sanitize_state_simple_string,
-    //TODO: Deal with C++ multi line strings: R"XXX( ... )XXX"
+    //TODO: Deal with C++ multi line strings: R"___( ... )___"
     sanitize_state_multi_line_string,
 };
 
@@ -177,8 +177,9 @@ extern "C" void mpc_cleanup_arr(mpc_parser_t ** array);
 template<class T, int N>
 constexpr int array_size(T (&)[N]) { return N; }
 
-int  s_language_length = 0;
-char s_language[10 * 1024];
+char * s_language_buffer = nullptr;
+int    s_language_buffer_length = 0;
+int    s_language_buffer_end = 0;
 
 struct MpcConfig {
     const char * name = nullptr;
@@ -186,42 +187,63 @@ struct MpcConfig {
     mpc_parser_t * parser = nullptr;
 
     MpcConfig(const char * name, const char * expression) : name(name), expression(expression) {
-        char * buffer = s_language + s_language_length;
-        int buffer_length = array_size(s_language) - s_language_length;
-        int len = snprintf(buffer, buffer_length, "%s : %s;\n", name, expression);
+        enum { MIN_BUFFER_SIZE = 4 * 1024 };
 
-        if(len >= buffer_length) {
-            puts("buffer not big enough!");
-            exit(1);
+        for(;;) {
+            char * buffer = s_language_buffer ? s_language_buffer + s_language_buffer_end : nullptr;
+            int buffer_remaining_length = s_language_buffer_length - s_language_buffer_end;
+
+            // It is OK for buffer to be NULL when buffer_remaining_length is 0.
+            int len = snprintf(buffer, buffer_remaining_length, "%s : %s;\n", name, expression);
+
+            if(len >= buffer_remaining_length) {
+                int minimum_length = s_language_buffer_length + len;
+                if(minimum_length < MIN_BUFFER_SIZE) minimum_length = MIN_BUFFER_SIZE;
+
+                int new_buffer_length = s_language_buffer_length;
+                // new buffer size grows by the golden ratio to mimic the Fibonacci sequence...
+                new_buffer_length *= 1618;
+                new_buffer_length /= 1000;
+
+                if(new_buffer_length < minimum_length) new_buffer_length = minimum_length;
+
+                s_language_buffer_length = new_buffer_length;
+                s_language_buffer = (char *)realloc(s_language_buffer, s_language_buffer_length);
+                continue;
+            }
+
+            s_language_buffer_end += len;
+            break;
         }
 
         parser = mpc_new(name);
-        s_language_length += len;
     }
 };
 
 int main() {
     MpcConfig config[] = {
-        { "ident"               ,R"XXX( /[a-zA-Z_][a-zA-Z0-9_]*/ )XXX" },
-        { "type"                ,R"XXX( <ident> )XXX" },
-        { "float"               ,R"XXX( /-?\d?.\d+[f]?/ )XXX" },
-        { "integer"             ,R"XXX( /-?\d+/ )XXX" },
-        { "number"              ,R"XXX( <float> | <integer> )XXX" },
-        { "character"           ,R"XXX( /'(\\.|[^'])*'/ )XXX" },
-        { "string"              ,R"XXX( /"(\\.|[^"])*"/ )XXX" },
-        { "assignment"          ,R"XXX( '=' <lexp> )XXX" },
+        { "ident"               ,R"___( /[a-zA-Z_][a-zA-Z0-9_]*/ )___" },
+        { "namespace_global"    ,R"___( "::" )___" },
+        { "namespace"           ,R"___( <ident> "::" )___" },
+        { "type"                ,R"___( <namespace_global>? <namespace>* <ident> )___" },
+        { "float"               ,R"___( /-?\d?.\d+[f]?/ )___" },
+        { "integer"             ,R"___( /-?\d+/ )___" },
+        { "number"              ,R"___( <float> | <integer> )___" },
+        { "character"           ,R"___( /'(\\.|[^'])*'/ )___" },
+        { "string"              ,R"___( /"(\\.|[^"])*"/ )___" },
+        { "assignment"          ,R"___( '=' <lexp> )___" },
 
-        { "factor"              ,R"XXX( '(' <lexp> ')'
+        { "factor"              ,R"___( '(' <lexp> ')'
                                       | <number>
                                       | <character>
                                       | <string>
                                       | <ident> '(' <lexp>? (',' <lexp>)* ')'
-                                      | <ident> )XXX" },
+                                      | <ident> )___" },
 
-        { "term"                ,R"XXX( <factor> (('*' | '/' | '%') <factor>)* )XXX" },
-        { "lexp"                ,R"XXX( <term> (('+' | '-') <term>)* )XXX" },
+        { "term"                ,R"___( <factor> (('*' | '/' | '%') <factor>)* )___" },
+        { "lexp"                ,R"___( <term> (('+' | '-') <term>)* )___" },
 
-        { "stmt"                ,R"XXX( '{' <stmt>* '}'
+        { "stmt"                ,R"___( '{' <stmt>* '}'
                                       | <declaration>
                                       | "while" '(' <condition> ')' <stmt>
                                       | "do" <stmt> "while" '(' <condition> ')' ';'
@@ -230,58 +252,58 @@ int main() {
                                       | "print" '(' <lexp>? ')' ';'
                                       | "return" <lexp>? ';'
                                       | <ident> '(' <ident>? (',' <ident>)* ')' ';' 
-                                      | ';' )XXX" },
+                                      | ';' )___" },
 
-        { "exp"                 ,R"XXX( <lexp> '>' <lexp>
+        { "exp"                 ,R"___( <lexp> '>' <lexp>
                                       | <lexp> '<' <lexp>
                                       | <lexp> ">=" <lexp>
                                       | <lexp> "<=" <lexp>
                                       | <lexp> "!=" <lexp>
-                                      | <lexp> "==" <lexp> )XXX" },
+                                      | <lexp> "==" <lexp> )___" },
 
-        { "condition"           ,R"XXX( <exp> | <ident> | <integer> | '!' <condition> )XXX" },
+        { "condition"           ,R"___( <exp> | <ident> | <integer> | '!' <condition> )___" },
 
-        { "whatever"            ,R"XXX( /([^{};]*;)/ <whatever>* 
+        { "whatever"            ,R"___( /([^{};]*;)/ <whatever>* 
                                       | /[^{}]*/ ('{' <whatever> '}')
-                                      )XXX" },
+                                      )___" },
 
-        { "typevar"             ,R"XXX( <ident> <assignment>? )XXX" }, 
-        { "typeident"           ,R"XXX( <type> <typevar> (',' <typevar>)* )XXX" }, 
-        { "declaration"         ,R"XXX( <typeident> ';' )XXX" },
+        { "typevar"             ,R"___( <ident> <assignment>? )___" }, 
+        { "typeident"           ,R"___( <type> <typevar> (',' <typevar>)* )___" }, 
+        { "declaration"         ,R"___( <typeident> ';' )___" },
         
-        { "args"                ,R"XXX( <typeident>? (',' <typeident>)* )XXX" },
-        { "body"                ,R"XXX( '{' <stmt>* '}' )XXX" },
-        { "function_ident"      ,R"XXX( <ident> )XXX" },
-        { "function_prefix"     ,R"XXX( "inline" | "static" | "constexpr" | "consteval" )XXX" },
-        { "function"            ,R"XXX( <function_prefix>* <type> <function_ident> '(' <args> ')' "const"? (';' | '{' <whatever>* '}') )XXX" },
+        { "args"                ,R"___( <typeident>? (',' <typeident>)* )___" },
+        { "body"                ,R"___( '{' <stmt>* '}' )___" },
+        { "function_ident"      ,R"___( <ident> )___" },
+        { "function_prefix"     ,R"___( "inline" | "static" | "constexpr" | "consteval" )___" },
+        { "function"            ,R"___( <function_prefix>* <type> <function_ident> '(' <args> ')' "const"? (';' | '{' <whatever>* '}') )___" },
 
         // Records
-        { "record_struct"       ,R"XXX( "struct" )XXX" },
-        { "record_class"        ,R"XXX( "class" )XXX" },
-        { "record_access"       ,R"XXX( "public:" | "private:" | "protected:" )XXX" },
-        { "record_decl"         ,R"XXX( <record_struct> | <record_class> )XXX" },
-        { "record_name"         ,R"XXX( <ident> )XXX" },
-        { "record_body"         ,R"XXX( '{' (<record_access> | <anno_function> | <function> | <declaration>)* '}' )XXX" },
-        { "record"              ,R"XXX( <record_decl> <record_name>? <record_body>? <ident>? ';' )XXX" },
+        { "record_struct"       ,R"___( "struct" )___" },
+        { "record_class"        ,R"___( "class" )___" },
+        { "record_access"       ,R"___( "public" | "private" | "protected" )___" },
+        { "record_decl"         ,R"___( <record_struct> | <record_class> )___" },
+        { "record_name"         ,R"___( <ident> )___" },
+        { "record_body"         ,R"___( '{' ( (<record_access>':') | <anno_function> | <function> | <declaration>)* '}' )___" },
+        { "record"              ,R"___( <record_decl> <record_name>? <record_body>? <ident>? ';' )___" },
 
         // Annotations
-        { "anno_var"            ,R"XXX( <ident> )XXX" },
-        { "anno_value"          ,R"XXX( <lexp> )XXX" },
-        { "anno_initalizer"     ,R"XXX( '.'? <anno_var> ('=' <anno_value>)? )XXX" },
-        { "anno_name"           ,R"XXX( <type> )XXX" },
-        { "anno_type"           ,R"XXX( <anno_name> '{' <anno_initalizer>? (',' <anno_initalizer>)* '}' )XXX" },
-        { "annotation"          ,R"XXX( '$' '(' (<anno_type>)? ')' )XXX" },
+        { "anno_var"            ,R"___( <ident> )___" },
+        { "anno_value"          ,R"___( <lexp> )___" },
+        { "anno_initalizer"     ,R"___( '.'? <anno_var> ('=' <anno_value>)? )___" },
+        { "anno_name"           ,R"___( <type> )___" },
+        { "anno_type"           ,R"___( <anno_name> '{' <anno_initalizer>? (',' <anno_initalizer>)* '}' )___" },
+        { "annotation"          ,R"___( '$' '(' (<anno_type>)? ')' )___" },
 
         // Annotation + construct
-        { "anno_function"       ,R"XXX( <annotation> <function> )XXX" },
-        { "anno_record"         ,R"XXX( <annotation> <record> )XXX" },
+        { "anno_function"       ,R"___( <annotation> <function> )___" },
+        { "anno_record"         ,R"___( <annotation> <record> )___" },
 
         // Small C++
-        { "include1"            ,R"XXX( "#include" '"' /(\\.|[^"])*/ '"' )XXX" },
-        { "include2"            ,R"XXX( "#include" '<' /(\\.|[^>])*/ '>' )XXX" },
-        { "include"             ,R"XXX( <include1> | <include2> )XXX" },
-        { "macro"               ,R"XXX( "#" /[^\r\n]*/ )XXX" },
-        { "smallcpp"            ,R"XXX( /^/ ( <include>
+        { "include1"            ,R"___( "#include" '"' /(\\.|[^"])*/ '"' )___" },
+        { "include2"            ,R"___( "#include" '<' /(\\.|[^>])*/ '>' )___" },
+        { "include"             ,R"___( <include1> | <include2> )___" },
+        { "macro"               ,R"___( "#" /[^\r\n]*/ )___" },
+        { "smallcpp"            ,R"___( /^/ ( <include>
                                             | <macro> 
                                             | <declaration>
 
@@ -290,7 +312,7 @@ int main() {
                                             
                                             | <anno_function>
                                             | <function>
-                                            )* /$/ )XXX" },
+                                            )* /$/ )___" },
     };
 
     mpc_parser_t * parser_array[array_size(config) + 1];
@@ -307,7 +329,7 @@ int main() {
         [](auto & v) { return 0 == strcmp(v.name, "smallcpp"); }
     )->parser;
 
-    mpca_lang_arr(MPCA_LANG_DEFAULT, s_language, parser_array);
+    mpca_lang_arr(MPCA_LANG_DEFAULT, s_language_buffer, parser_array);
     mpc_result_t r;
 
     puts("_________________________________________________");
@@ -333,6 +355,7 @@ int main() {
     mpc_cleanup_arr(parser_array);
 
     free(fileContent);
+    free(s_language_buffer);
 
     return 0;
 }
