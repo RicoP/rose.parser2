@@ -170,5 +170,7 @@ struct Vector3 {
 
   public:
     float sqrt_length() const { return x*x + y*y + z*z; }
+
+    $(function { pure })
     float length() const { return sqrt(sqrt_length()); }
 };
