@@ -75,6 +75,8 @@ inline static int foobar8(int n) {
 #include <windows.h>
 #endif
 
+#include "rose/core/hash.h"
+
 #include "stdio.h"
 #include <math.h>
 
@@ -102,6 +104,13 @@ inline static int fib(int n) {
 
 //
 // Hallo Ballo
+
+/* 
+
+// whatever
+Multi line comment 
+
+*/
 
 int main() {
   char c = 'c';
@@ -143,6 +152,6 @@ int main() {
   return 0;
 }
 
-inline static int foobarX(int n) {
+inline static int foobarX(int n /* a value / or something else */) {
   hello();
 }

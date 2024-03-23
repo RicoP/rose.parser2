@@ -55,6 +55,93 @@ inline char* read_file_to_memory(const char *path) {
     return buffer;
 }
 
+enum sanitize_error {
+    sanitize_error_OK = 0,
+    sanitize_error_input_error,
+
+    sanitize_error_unknown
+};
+
+enum sanitize_state {
+    sanitize_state_default = 0,
+    sanitize_state_single_line_comment,
+    sanitize_state_multi_line_comment,
+    sanitize_state_simple_string,
+    //TODO:
+    sanitize_state_multi_line_string,
+};
+
+inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
+    if(content == nullptr) return sanitize_error_input_error;
+
+    sanitize_state state = sanitize_state_default;
+    const char SPACE = ' ';
+
+    char c_prev = 0;
+    char c_crnt = 0;
+    char terminator = 0;
+
+    if(pline) *pline = 1;
+    if(pcol)  *pcol = 1;
+
+    for(char * p = content; *p; ++p) {
+        c_prev = c_crnt;
+        c_crnt = *p;
+
+        if(pline && pcol) {
+            (*pcol)++;
+            if(c_crnt == '\n') {
+                (*pline)++;
+                *pcol = 1;
+            }
+        }
+
+        switch(state) {
+            default: return sanitize_error_unknown;
+            break; case sanitize_state_default: {
+                switch(c_crnt) {
+                    default: break;
+                    break; case '\"': case '\'':
+                        terminator = c_crnt; 
+                        state = sanitize_state_simple_string;
+                    break; case '/': 
+                        if(c_prev == '/') { 
+                            *(p-1) = SPACE;
+                            *p = SPACE;
+                            state = sanitize_state_single_line_comment;
+                        }
+                    break; case '*': 
+                        if(c_prev == '/') { 
+                            *(p-1) = SPACE;
+                            *p = SPACE;
+                            state = sanitize_state_multi_line_comment;
+                        }
+                }
+            }
+            break; case sanitize_state_single_line_comment: {
+                if(c_crnt == '\n') {
+                    state = sanitize_state_default;
+                } else {
+                    *p = SPACE;
+                }
+            }
+            break; case sanitize_state_multi_line_comment: {
+                *p = SPACE;
+                if(c_crnt == '/' && c_prev == '*') {
+                    state = sanitize_state_default;
+                }
+            }
+            break; case sanitize_state_simple_string: {
+                if(c_crnt == terminator && c_prev != '\\') {
+                    state = sanitize_state_default;
+                }
+            }
+        }
+    }
+
+    if(state != sanitize_state_default) return sanitize_error_input_error;
+    return sanitize_error_OK;
+}
 
 extern "C" mpc_err_t *mpca_lang_arr(int flags, const char *language, mpc_parser_t ** array);
 extern "C" void mpc_cleanup_arr(mpc_parser_t ** array);
@@ -87,9 +174,6 @@ struct MpcConfig {
 
 int main() {
     MpcConfig config[] = {
-        { "linecomment"         ,R"XXX( "//" /[^\r\n]*/ )XXX" },
-        //{ "multilinecomment"    ,R"XXX( "/*" /[ \w\r\n]*?/ "*/" )XXX" },
-        { "comment"             ,R"XXX( <linecomment> )XXX" },
         { "ident"               ,R"XXX( /[a-zA-Z_][a-zA-Z0-9_]*/ )XXX" },
         { "type"                ,R"XXX( <ident> )XXX" },
         { "float"               ,R"XXX( /-?\d?.\d+[f]?/ )XXX" },
@@ -154,7 +238,7 @@ int main() {
         { "include2"            ,R"XXX( "#include" '<' /(\\.|[^>])*/ '>' )XXX" },
         { "include"             ,R"XXX( <include1> | <include2> )XXX" },
         { "macro"               ,R"XXX( "#" /[^\r\n]*/ )XXX" },
-        { "smallc"              ,R"XXX( /^/ (<include> | <record> | <macro> | <comment> | <declaration> | <function>)* /$/ )XXX" },
+        { "smallc"              ,R"XXX( /^/ (<include> | <record> | <macro> | <declaration> | <function>)* /$/ )XXX" },
     };
 
     mpc_parser_t * parser_array[array_size(config) + 1];
@@ -176,7 +260,14 @@ int main() {
 
     puts("_________________________________________________");
 
-    char * fileContent = read_file_to_memory("test1.in");
+    const char * filename = "test1.in";
+    char * fileContent = read_file_to_memory(filename);
+
+    int line,col;
+    if(int error = sanitize_string(fileContent, &line, &col)) {
+        fprintf(stderr, "File Content of file %s is not correct: code %d (line %d, col %d)", filename, error, line, col);
+        return error;
+    }
 
     if (mpc_parse("test1.in", fileContent, Smallc, &r)) {
         mpc_ast_print((mpc_ast_t *)r.output);
