@@ -55,22 +55,6 @@ inline char* read_file_to_memory(const char *path) {
     return buffer;
 }
 
-enum sanitize_error {
-    sanitize_error_OK = 0,
-    sanitize_error_input_error,
-
-    sanitize_error_unknown
-};
-
-enum sanitize_state {
-    sanitize_state_default = 0,
-    sanitize_state_single_line_comment,
-    sanitize_state_multi_line_comment,
-    sanitize_state_simple_string,
-    //TODO:
-    sanitize_state_multi_line_string,
-};
-
 void print_error_line_col(const char * content, int line, int col) {
     if(line < 1) return;
     if(col < 1) return;
@@ -85,7 +69,6 @@ void print_error_line_col(const char * content, int line, int col) {
                     fputs(" ", stderr);
                 }
                 fputs("^", stderr);
-                return;
             }
             crnt_line++;
             continue;
@@ -99,6 +82,22 @@ void print_error_line_col(const char * content, int line, int col) {
         }
     }
 }
+
+enum sanitize_error {
+    sanitize_error_OK = 0,
+    sanitize_error_input_error,
+
+    sanitize_error_unknown
+};
+
+enum sanitize_state {
+    sanitize_state_default = 0,
+    sanitize_state_single_line_comment,
+    sanitize_state_multi_line_comment,
+    sanitize_state_simple_string,
+    //TODO: Deal with C++ multi line strings: R"XXX( ... )XXX"
+    sanitize_state_multi_line_string,
+};
 
 inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
     if(content == nullptr) return sanitize_error_input_error;
@@ -254,15 +253,15 @@ int main() {
         { "body"                ,R"XXX( '{' <stmt>* '}' )XXX" },
         { "function_ident"      ,R"XXX( <ident> )XXX" },
         { "function_prefix"     ,R"XXX( "inline" | "static" | "constexpr" | "consteval" )XXX" },
-        { "function"            ,R"XXX( <function_prefix>* <type> <function_ident> '(' <args> ')' (';' | '{' <whatever>* '}') )XXX" },
+        { "function"            ,R"XXX( <function_prefix>* <type> <function_ident> '(' <args> ')' "const"? (';' | '{' <whatever>* '}') )XXX" },
 
         // Records
         { "record_struct"       ,R"XXX( "struct" )XXX" },
         { "record_class"        ,R"XXX( "class" )XXX" },
-        { "record_access"       ,R"XXX( ("public" | "private" | "protected") ':' )XXX" },
+        { "record_access"       ,R"XXX( "public:" | "private:" | "protected:" )XXX" },
         { "record_decl"         ,R"XXX( <record_struct> | <record_class> )XXX" },
         { "record_name"         ,R"XXX( <ident> )XXX" },
-        { "record_body"         ,R"XXX( '{' (<record_access> | <declaration>)* '}' )XXX" },
+        { "record_body"         ,R"XXX( '{' (<record_access> | <anno_function> | <function> | <declaration>)* '}' )XXX" },
         { "record"              ,R"XXX( <record_decl> <record_name>? <record_body>? <ident>? ';' )XXX" },
 
         // Annotations

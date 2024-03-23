@@ -158,9 +158,11 @@ inline static int foobarX(int n /* a value / or something else */) {
 }
 
 
-
-//$(record_t {  })
+$  ( record_t {  } )
 struct Vector3 {
   private:
     int x,y,z;
+  public:
+    float sqrt_length() const { return x*x + y*y + z*z; }
+    float length() const { return sqrt(sqrt_length()); }
 };
