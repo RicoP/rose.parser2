@@ -20,8 +20,8 @@ if defined install_path (
 
 DEL *.exe
 
-CL /Fe:test1 /std:c++17 /Ox /I../include /I../externals/mpc/ mpc.proxy.c test1.cpp
+CL /Fe:parser /std:c++17 /O1 /Gy /GL /GR- /MD /I../include /I../externals/mpc/ mpc.proxy.c parser.cpp
 
 DEL *.exp *.lib *.obj  *.ilk *.pdb
 
-test1.exe
+parser.exe
