@@ -187,7 +187,7 @@ struct MpcConfig {
     mpc_parser_t * parser = nullptr;
 
     MpcConfig(const char * name, const char * expression) : name(name), expression(expression) {
-        enum { MIN_BUFFER_SIZE = 4 * 1024 };
+        enum { MIN_BUFFER_SIZE = 1024 };
 
         for(;;) {
             char * buffer = s_language_buffer ? s_language_buffer + s_language_buffer_end : nullptr;
@@ -200,15 +200,15 @@ struct MpcConfig {
                 int minimum_length = s_language_buffer_length + len;
                 if(minimum_length < MIN_BUFFER_SIZE) minimum_length = MIN_BUFFER_SIZE;
 
-                int new_buffer_length = s_language_buffer_length;
                 // new buffer size grows by the golden ratio to mimic the Fibonacci sequence...
-                new_buffer_length *= 1618;
-                new_buffer_length /= 1000;
+                s_language_buffer_length *= 1618;
+                s_language_buffer_length /= 1000;
+                if(s_language_buffer_length < minimum_length) s_language_buffer_length = minimum_length;
 
-                if(new_buffer_length < minimum_length) new_buffer_length = minimum_length;
-
-                s_language_buffer_length = new_buffer_length;
                 s_language_buffer = (char *)realloc(s_language_buffer, s_language_buffer_length);
+                //printf("New Buffer Length -> %d\n", s_language_buffer_length);
+
+                // try again
                 continue;
             }
 
