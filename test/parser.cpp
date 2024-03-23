@@ -238,7 +238,8 @@ int main() {
                                       | <character>
                                       | <string>
                                       | <ident> '(' <lexp>? (',' <lexp>)* ')'
-                                      | <ident> )___" },
+                                      | <ident>
+                                      )___" },
 
         { "term"                ,R"___( <factor> (('*' | '/' | '%') <factor>)* )___" },
         { "lexp"                ,R"___( <term> (('+' | '-') <term>)* )___" },
@@ -252,14 +253,16 @@ int main() {
                                       | "print" '(' <lexp>? ')' ';'
                                       | "return" <lexp>? ';'
                                       | <ident> '(' <ident>? (',' <ident>)* ')' ';' 
-                                      | ';' )___" },
+                                      | ';'
+                                      )___" },
 
         { "exp"                 ,R"___( <lexp> '>' <lexp>
                                       | <lexp> '<' <lexp>
                                       | <lexp> ">=" <lexp>
                                       | <lexp> "<=" <lexp>
                                       | <lexp> "!=" <lexp>
-                                      | <lexp> "==" <lexp> )___" },
+                                      | <lexp> "==" <lexp>
+                                      )___" },
 
         { "condition"           ,R"___( <exp> | <ident> | <integer> | '!' <condition> )___" },
 
@@ -312,7 +315,8 @@ int main() {
                                             
                                             | <anno_function>
                                             | <function>
-                                            )* /$/ )___" },
+                                            )* /$/
+                                            )___" },
     };
 
     mpc_parser_t * parser_array[array_size(config) + 1];
@@ -343,7 +347,7 @@ int main() {
         return error;
     }
 
-    if (mpc_parse("test1.in", fileContent, Smallc, &r)) {
+    if (mpc_parse(filename, fileContent, Smallc, &r)) {
         mpc_ast_print((mpc_ast_t *)r.output);
         mpc_ast_delete((mpc_ast_t *)r.output);
     } else {
