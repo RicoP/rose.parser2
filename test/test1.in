@@ -152,6 +152,15 @@ int main() {
   return 0;
 }
 
+$(function_t { .x = 4, .y = "hello", w = 4, hello })
 inline static int foobarX(int n /* a value / or something else */) {
   hello();
 }
+
+
+
+//$(record_t {  })
+struct Vector3 {
+  private:
+    int x,y,z;
+};

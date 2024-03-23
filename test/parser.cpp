@@ -71,6 +71,35 @@ enum sanitize_state {
     sanitize_state_multi_line_string,
 };
 
+void print_error_line_col(const char * content, int line, int col) {
+    if(line < 1) return;
+    if(col < 1) return;
+
+    int crnt_line = 1;
+    
+    for(const char * p = content; *p; ++p) {
+        if(*p == '\n') {
+            if(crnt_line == line) {
+                fputs("\n", stderr);
+                for(int i = col; --col;) {
+                    fputs(" ", stderr);
+                }
+                fputs("^", stderr);
+                return;
+            }
+            crnt_line++;
+            continue;
+        }
+
+        if(crnt_line == line) {
+            char ministring[2] = "X";
+            ministring[0] = *p;
+
+            fputs(ministring, stderr);
+        }
+    }
+}
+
 inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
     if(content == nullptr) return sanitize_error_input_error;
 
@@ -227,18 +256,42 @@ int main() {
         { "function_prefix"     ,R"XXX( "inline" | "static" | "constexpr" | "consteval" )XXX" },
         { "function"            ,R"XXX( <function_prefix>* <type> <function_ident> '(' <args> ')' (';' | '{' <whatever>* '}') )XXX" },
 
+        // Records
         { "record_struct"       ,R"XXX( "struct" )XXX" },
         { "record_class"        ,R"XXX( "class" )XXX" },
+        { "record_access"       ,R"XXX( ("public" | "private" | "protected") ':' )XXX" },
         { "record_decl"         ,R"XXX( <record_struct> | <record_class> )XXX" },
         { "record_name"         ,R"XXX( <ident> )XXX" },
-        { "class_body"          ,R"XXX( '{' <declaration>* '}' )XXX" },
-        { "record"              ,R"XXX( <record_decl> <record_name>? <class_body>? <ident>? ';' )XXX" },
+        { "record_body"         ,R"XXX( '{' (<record_access> | <declaration>)* '}' )XXX" },
+        { "record"              ,R"XXX( <record_decl> <record_name>? <record_body>? <ident>? ';' )XXX" },
 
+        // Annotations
+        { "anno_var"            ,R"XXX( <ident> )XXX" },
+        { "anno_value"          ,R"XXX( <lexp> )XXX" },
+        { "anno_initalizer"     ,R"XXX( '.'? <anno_var> ('=' <anno_value>)? )XXX" },
+        { "anno_name"           ,R"XXX( <type> )XXX" },
+        { "anno_type"           ,R"XXX( <anno_name> '{' <anno_initalizer>? (',' <anno_initalizer>)* '}' )XXX" },
+        { "annotation"          ,R"XXX( '$' '(' (<anno_type>)? ')' )XXX" },
+
+        // Annotation + construct
+        { "anno_function"       ,R"XXX( <annotation> <function> )XXX" },
+        { "anno_record"         ,R"XXX( <annotation> <record> )XXX" },
+
+        // Small C++
         { "include1"            ,R"XXX( "#include" '"' /(\\.|[^"])*/ '"' )XXX" },
         { "include2"            ,R"XXX( "#include" '<' /(\\.|[^>])*/ '>' )XXX" },
         { "include"             ,R"XXX( <include1> | <include2> )XXX" },
         { "macro"               ,R"XXX( "#" /[^\r\n]*/ )XXX" },
-        { "smallc"              ,R"XXX( /^/ (<include> | <record> | <macro> | <declaration> | <function>)* /$/ )XXX" },
+        { "smallcpp"            ,R"XXX( /^/ ( <include>
+                                            | <macro> 
+                                            | <declaration>
+
+                                            | <anno_record>
+                                            | <record> 
+                                            
+                                            | <anno_function>
+                                            | <function>
+                                            )* /$/ )XXX" },
     };
 
     mpc_parser_t * parser_array[array_size(config) + 1];
@@ -252,7 +305,7 @@ int main() {
     mpc_parser_t *Smallc = std::find_if(
         std::begin(config),
         std::end(config),
-        [](auto & v) { return 0 == strcmp(v.name, "smallc"); }
+        [](auto & v) { return 0 == strcmp(v.name, "smallcpp"); }
     )->parser;
 
     mpca_lang_arr(MPCA_LANG_DEFAULT, s_language, parser_array);
@@ -274,6 +327,7 @@ int main() {
         mpc_ast_delete((mpc_ast_t *)r.output);
     } else {
         mpc_err_print(r.error);
+        print_error_line_col(fileContent, r.error->state.row + 1, r.error->state.col + 1);
         mpc_err_delete(r.error);
     }
 
