@@ -87,6 +87,10 @@ int main() {
 
         { "condition"           ,R"XXX( <exp> | <ident> | <integer> | '!' <condition> )XXX" },
 
+        { "whatever"            ,R"XXX( /([^{};]*;)/ <whatever>* 
+                                      | /[^{}]*/ ('{' <whatever> '}')
+                                      )XXX" },
+
         { "typevar"             ,R"XXX( <ident> <assignment>? )XXX" }, 
         { "typeident"           ,R"XXX( <type> <typevar> (',' <typevar>)* )XXX" }, 
         { "declaration"         ,R"XXX( <typeident> ';' )XXX" },
@@ -95,7 +99,7 @@ int main() {
         { "body"                ,R"XXX( '{' <stmt>* '}' )XXX" },
         { "function_ident"      ,R"XXX( <ident> )XXX" },
         { "function_prefix"     ,R"XXX( "inline" | "static" | "constexpr" | "consteval" )XXX" },
-        { "function"            ,R"XXX( <function_prefix>* <type> <function_ident> '(' <args> ')' (<body> | ';') )XXX" },
+        { "function"            ,R"XXX( <function_prefix>* <type> <function_ident> '(' <args> ')' (';' | '{' <whatever>* '}') )XXX" },
 
         { "record_struct"       ,R"XXX( "struct" )XXX" },
         { "record_class"        ,R"XXX( "class" )XXX" },
@@ -127,6 +131,8 @@ int main() {
 
     mpca_lang_arr(MPCA_LANG_DEFAULT, s_language, parser_array);
     mpc_result_t r;
+
+    puts("_________________________________________________");
 
     FILE * inputFile = fopen("test1.in", "rb");
     if (mpc_parse_file("test1.in", inputFile, Smallc, &r)) {

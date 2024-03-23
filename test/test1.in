@@ -1,3 +1,75 @@
+inline static int foobar1(int n) ;
+
+inline static int foobar2(int n) {
+  hello();
+}
+
+inline static int foobar3(int n) {
+  if (n == 0) { hello(); } 
+}
+
+inline static int foobar4(int n) {
+  if (n == 0) { 
+    if (n == 0) {  
+      hello(); 
+    }
+  } 
+}
+
+inline static int foobar5(int n) {
+  if (n == 0) { 
+      hello(); 
+  } 
+  if (n == 1) { 
+      ballo(); 
+  } 
+}
+
+
+inline static int foobar5(int n) {
+  if (n == 0) { 
+      hello(); 
+      hello(); 
+  } 
+  if (n == 1) { 
+      ballo(); 
+  } 
+}
+
+
+inline static int foobar6(int n) {
+  { 
+      hello(); 
+      hello(); 
+  } 
+  if (n == 1) { 
+      ballo(); 
+  } 
+}
+
+inline static int foobar7(int n) {
+  { 
+      hello(); 
+      hello(); 
+  } 
+  { 
+      ballo(); 
+  } 
+}
+
+inline static int foobar8(int n) {
+  { 
+      hello(); 
+      hello(); 
+  } 
+  hello(); 
+
+  if (n == 1) { 
+      ballo(); 
+  } 
+}
+
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -69,4 +141,8 @@ int main() {
 
 
   return 0;
+}
+
+inline static int foobarX(int n) {
+  hello();
 }
