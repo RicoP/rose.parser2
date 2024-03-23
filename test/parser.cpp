@@ -60,7 +60,7 @@ void print_error_line_col(const char * content, int line, int col) {
     if(col < 1) return;
 
     int crnt_line = 1;
-    
+
     for(const char * p = content; *p; ++p) {
         if(*p == '\n') {
             if(crnt_line == line) {
@@ -130,16 +130,16 @@ inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
                 switch(c_crnt) {
                     default: break;
                     break; case '\"': case '\'':
-                        terminator = c_crnt; 
+                        terminator = c_crnt;
                         state = sanitize_state_simple_string;
-                    break; case '/': 
-                        if(c_prev == '/') { 
+                    break; case '/':
+                        if(c_prev == '/') {
                             *(p-1) = SPACE;
                             *p = SPACE;
                             state = sanitize_state_single_line_comment;
                         }
-                    break; case '*': 
-                        if(c_prev == '/') { 
+                    break; case '*':
+                        if(c_prev == '/') {
                             *(p-1) = SPACE;
                             *p = SPACE;
                             state = sanitize_state_multi_line_comment;
@@ -252,7 +252,7 @@ int main() {
                                       | <ident> <assignment> ';'
                                       | "print" '(' <lexp>? ')' ';'
                                       | "return" <lexp>? ';'
-                                      | <ident> '(' <ident>? (',' <ident>)* ')' ';' 
+                                      | <ident> '(' <ident>? (',' <ident>)* ')' ';'
                                       | ';'
                                       )___" },
 
@@ -266,14 +266,14 @@ int main() {
 
         { "condition"           ,R"___( <exp> | <ident> | <integer> | '!' <condition> )___" },
 
-        { "whatever"            ,R"___( /([^{};]*;)/ <whatever>* 
+        { "whatever"            ,R"___( /([^{};]*;)/ <whatever>*
                                       | /[^{}]*/ ('{' <whatever> '}')
                                       )___" },
 
-        { "typevar"             ,R"___( <ident> <assignment>? )___" }, 
-        { "typeident"           ,R"___( <type> <typevar> (',' <typevar>)* )___" }, 
+        { "typevar"             ,R"___( <ident> <assignment>? )___" },
+        { "typeident"           ,R"___( <type> <typevar> (',' <typevar>)* )___" },
         { "declaration"         ,R"___( <typeident> ';' )___" },
-        
+
         { "args"                ,R"___( <typeident>? (',' <typeident>)* )___" },
         { "body"                ,R"___( '{' <stmt>* '}' )___" },
         { "function_ident"      ,R"___( <ident> )___" },
@@ -307,12 +307,12 @@ int main() {
         { "include"             ,R"___( <include1> | <include2> )___" },
         { "macro"               ,R"___( "#" /[^\r\n]*/ )___" },
         { "smallcpp"            ,R"___( /^/ ( <include>
-                                            | <macro> 
+                                            | <macro>
                                             | <declaration>
 
                                             | <anno_record>
-                                            | <record> 
-                                            
+                                            | <record>
+
                                             | <anno_function>
                                             | <function>
                                             )* /$/
