@@ -14,6 +14,48 @@ void baz() {
     Vector3 v;
 }
 
+
+inline char* read_file_to_memory(const char *path) {
+    FILE *file;
+    char *buffer;
+    long file_size;
+
+    // Open file
+    file = fopen(path, "rb"); // Open in binary mode
+    if (file == nullptr) {
+        perror("Error opening file");
+        return nullptr;
+    }
+
+    // Get file size
+    fseek(file, 0, SEEK_END);
+    file_size = ftell(file);
+    rewind(file);
+
+    // Allocate memory for the file content + null terminator
+    buffer = (char *)malloc(file_size + 1);
+    if (buffer == nullptr) {
+        fprintf(stderr, "Memory allocation failed\n");
+        fclose(file);
+        return nullptr;
+    }
+
+    // Read file into memory
+    if (fread(buffer, 1, file_size, file) != file_size) {
+        fprintf(stderr, "Failed to read file\n");
+        free(buffer);
+        fclose(file);
+        return nullptr;
+    }
+
+    // Null terminate the string
+    buffer[file_size] = '\0';
+
+    fclose(file);
+    return buffer;
+}
+
+
 extern "C" mpc_err_t *mpca_lang_arr(int flags, const char *language, mpc_parser_t ** array);
 extern "C" void mpc_cleanup_arr(mpc_parser_t ** array);
 
@@ -134,8 +176,9 @@ int main() {
 
     puts("_________________________________________________");
 
-    FILE * inputFile = fopen("test1.in", "rb");
-    if (mpc_parse_file("test1.in", inputFile, Smallc, &r)) {
+    char * fileContent = read_file_to_memory("test1.in");
+
+    if (mpc_parse("test1.in", fileContent, Smallc, &r)) {
         mpc_ast_print((mpc_ast_t *)r.output);
         mpc_ast_delete((mpc_ast_t *)r.output);
     } else {
@@ -145,7 +188,7 @@ int main() {
 
     mpc_cleanup_arr(parser_array);
 
-    fclose(inputFile);
+    free(fileContent);
 
     return 0;
 }
