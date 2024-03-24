@@ -86,6 +86,7 @@ void print_error_line_col(const char * content, int line, int col) {
 enum sanitize_error {
     sanitize_error_OK = 0,
     sanitize_error_input_error,
+    sanitize_error_buffer_overflow,
 
     sanitize_error_unknown
 };
@@ -95,12 +96,36 @@ enum sanitize_state {
     sanitize_state_single_line_comment,
     sanitize_state_multi_line_comment,
     sanitize_state_simple_string,
-    //TODO: Deal with C++ multi line strings: R"___( ... )___"
+    sanitize_state_multi_line_string_begin,
     sanitize_state_multi_line_string,
 };
 
 inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
+    enum { TEXT_MEMORY_SIZE = 64 };
+
     if(content == nullptr) return sanitize_error_input_error;
+
+    char prevtextbuffer[TEXT_MEMORY_SIZE];
+    char multilinestringterminator[TEXT_MEMORY_SIZE];
+    int textmemorypointer = 0;
+    int textterminatorsize = 0;
+
+    auto mmultilinestringend = [&]() {
+        if(textmemorypointer < textterminatorsize) return false;
+
+        int indexMemory = (textmemorypointer + TEXT_MEMORY_SIZE - textterminatorsize) % TEXT_MEMORY_SIZE;
+
+        for(int i = 0; i != textterminatorsize; ++i) {
+            int iMem = indexMemory % TEXT_MEMORY_SIZE;
+            int iTerm = i;
+
+            if(prevtextbuffer[iMem] != multilinestringterminator[iTerm]) return false;
+
+            indexMemory++;
+        }
+
+        return true;
+    };
 
     sanitize_state state = sanitize_state_default;
     const char SPACE = ' ';
@@ -131,7 +156,13 @@ inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
                     default: break;
                     break; case '\"': case '\'':
                         terminator = c_crnt;
-                        state = sanitize_state_simple_string;
+                        if(c_prev == 'R') {
+                            p[-1] = SPACE;
+                            state = sanitize_state_multi_line_string_begin;
+                            multilinestringterminator[0] = ')';
+                            textterminatorsize = 1;
+                        }
+                        else              state = sanitize_state_simple_string;
                     break; case '/':
                         if(c_prev == '/') {
                             *(p-1) = SPACE;
@@ -163,7 +194,38 @@ inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
                 if(c_crnt == terminator && c_prev != '\\') {
                     state = sanitize_state_default;
                 }
+                else {
+                    p[0] = 'X';
+                }
             }
+            break; case sanitize_state_multi_line_string_begin: {
+                if(textterminatorsize == TEXT_MEMORY_SIZE) {
+                    return sanitize_error_buffer_overflow;
+                }
+
+                p[0] = 'X';
+                if(c_crnt == '(') {
+                    state = sanitize_state_multi_line_string;
+                }
+                else {
+                    multilinestringterminator[textterminatorsize] = c_crnt;
+                    textterminatorsize++;
+                }
+            }
+            break; case sanitize_state_multi_line_string: {
+                if(c_crnt == '\"' && mmultilinestringend()) {
+                    state = sanitize_state_default;
+                    continue;
+                } else {
+                    if(textterminatorsize == TEXT_MEMORY_SIZE) {
+                        return sanitize_error_buffer_overflow;
+                    }
+                }
+
+                prevtextbuffer[textmemorypointer % TEXT_MEMORY_SIZE] = c_crnt;
+                textmemorypointer++;
+                p[0] = 'X';
+            }            
         }
     }
 
@@ -344,8 +406,11 @@ int main() {
     int line,col;
     if(int error = sanitize_string(fileContent, &line, &col)) {
         fprintf(stderr, "File Content of file %s is not correct: code %d (line %d, col %d)", filename, error, line, col);
+        print_error_line_col(fileContent, line, col);
         return error;
     }
+
+    //puts(fileContent); return 0;
 
     if (mpc_parse(filename, fileContent, Smallc, &r)) {
         mpc_ast_print((mpc_ast_t *)r.output);
