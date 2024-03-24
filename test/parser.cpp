@@ -61,8 +61,10 @@ void print_error_line_col(const char * content, int line, int col) {
 
     int crnt_line = 1;
 
-    for(const char * p = content; *p; ++p) {
-        if(*p == '\n') {
+    bool active = true;
+    for(const char * p = content; active; ++p) {
+        active = *p != 0;
+        if(*p == '\n' || *p == 0) {
             if(crnt_line == line) {
                 fputs("\n", stderr);
                 for(int i = col; --col;) {
@@ -162,7 +164,7 @@ inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
                             multilinestringterminator[0] = ')';
                             textterminatorsize = 1;
                         }
-                        else              state = sanitize_state_simple_string;
+                        else state = sanitize_state_simple_string;
                     break; case '/':
                         if(c_prev == '/') {
                             *(p-1) = SPACE;
@@ -195,15 +197,16 @@ inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
                     state = sanitize_state_default;
                 }
                 else {
-                    p[0] = 'X';
+                    if(*p != '\n') *p = 'X';
                 }
             }
             break; case sanitize_state_multi_line_string_begin: {
                 if(textterminatorsize == TEXT_MEMORY_SIZE) {
                     return sanitize_error_buffer_overflow;
                 }
+               
+                if(*p != '\n') *p = 'X';
 
-                p[0] = 'X';
                 if(c_crnt == '(') {
                     state = sanitize_state_multi_line_string;
                 }
@@ -224,7 +227,8 @@ inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
 
                 prevtextbuffer[textmemorypointer % TEXT_MEMORY_SIZE] = c_crnt;
                 textmemorypointer++;
-                p[0] = 'X';
+                
+                if(*p != '\n') *p = 'X';
             }            
         }
     }
