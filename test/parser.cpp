@@ -185,7 +185,7 @@ inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
                 }
             }
             break; case sanitize_state_multi_line_comment: {
-                *p = SPACE;
+                if(*p != '\n') *p = SPACE;
                 if(c_crnt == '/' && c_prev == '*') {
                     state = sanitize_state_default;
                 }
@@ -328,8 +328,11 @@ int main() {
 
         { "condition"           ,R"___( <exp> | <ident> | <integer> | '!' <condition> )___" },
 
-        { "whatever"            ,R"___( /([^{};]*;)/ <whatever>*
-                                      | /[^{}]*/ ('{' <whatever> '}')
+        { "whatever"            ,R"___( /[^{}]*/ '{' /[^{}]*/ '}' ';'?
+                                      | /[^{}]*/ '{' /[^{}]*/ '}' ','?
+                                      | /[^{}]*/ '{' <whatever> (',' <whatever>)* ','? '}'
+                                      | /[^{}]*/ '{' <whatever> '}' ';'? ','?
+                                      | /([^{};]*;)/ <whatever>*
                                       )___" },
 
         { "typevar"             ,R"___( <ident> <assignment>? )___" },

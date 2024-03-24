@@ -70,6 +70,37 @@ inline static int foobar8(int n) {
 }
 
 
+inline static int foobar8(int n) {
+  const char * sss[] =  { };
+}
+
+
+inline static int foobar8(int n) {
+  const char * sss[] =  { "ident"               , "asdas" {} };
+}
+
+
+inline static int foobar8(int n) {
+  const char * sss[] =  { 
+    {  }
+  };
+}
+
+inline static int foobar8(int n) {
+  const char * sss[] =  { 
+    { "ident"               , "asdas" }
+  };
+}
+
+
+inline static int foobar8(int n) {
+  const char * sss[] =  { 
+    { "ident"               , "asdas" },
+    { "ident"               , "asdas" }
+  };
+}
+
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -174,3 +205,38 @@ struct Vector3 {
     $(function { pure })
     float length() const { return sqrt(sqrt_length()); }
 };
+
+
+
+int main() {
+    MpcConfig config[] = {
+        { "ident"               , "asdas" }
+    };
+}
+
+
+int main() {
+    MpcConfig config[] = {
+        { "ident"               ,R"___( /[a-zA-Z_][a-zA-Z0-9_]*/ )___" },
+        { "namespace_global"    ,R"___( "::" )___" },
+        { "namespace"           ,R"___( <ident> "::" )___" },
+        { "type"                ,R"___( <namespace_global>? <namespace>* <ident> )___" },
+        { "float"               ,R"___( /-?\d?.\d+[f]?/ )___" },
+        { "integer"             ,R"___( /-?\d+/ )___" },
+        { "number"              ,R"___( <float> | <integer> )___" },
+        { "character"           ,R"___( /'(\\.|[^'])*'/ )___" },
+        { "string"              ,R"___( /"(\\.|[^"])*"/ )___" },
+        { "assignment"          ,R"___( '=' <lexp> )___" },
+        { "smallcpp"            ,R"___( /^/ ( <include>
+                                            | <macro>
+                                            | <declaration>
+
+                                            | <anno_record>
+                                            | <record>
+
+                                            | <anno_function>
+                                            | <function>
+                                            )* /$/
+                                            )___" },        
+    };
+}
