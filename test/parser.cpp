@@ -61,27 +61,25 @@ void print_error_line_col(const char * content, int line, int col) {
 
     int crnt_line = 1;
 
-    bool active = true;
-    for(const char * p = content; active; ++p) {
-        active = *p != 0;
-        if(*p == '\n' || *p == 0) {
-            if(crnt_line == line) {
-                fputs("\n", stderr);
-                for(int i = col; --col;) {
-                    fputs(" ", stderr);
-                }
-                fputs("^", stderr);
-            }
-            crnt_line++;
-            continue;
-        }
-
+    const char * p = content;
+    while(crnt_line <= line && *p == 0) {
         if(crnt_line == line) {
             char ministring[2] = "X";
             ministring[0] = *p;
 
             fputs(ministring, stderr);
         }
+
+        ++p;
+        if(*p == '\n' || *p == 0) crnt_line++;
+    }
+
+    if(crnt_line > line) {
+        fputs("\n", stderr);
+        for(int i = col; --col;) {
+            fputs(" ", stderr);
+        }
+        fputs("^", stderr);
     }
 }
 
@@ -89,6 +87,7 @@ enum sanitize_error {
     sanitize_error_OK = 0,
     sanitize_error_input_error,
     sanitize_error_buffer_overflow,
+    sanitize_error_unexpected_end,
 
     sanitize_error_unknown
 };
@@ -107,23 +106,20 @@ inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
 
     if(content == nullptr) return sanitize_error_input_error;
 
-    char prevtextbuffer[TEXT_MEMORY_SIZE];
-    char multilinestringterminator[TEXT_MEMORY_SIZE];
-    int textmemorypointer = 0;
-    int textterminatorsize = 0;
+    char previous_text_ringbuffer[TEXT_MEMORY_SIZE];
+    int  previous_text_ringbuffer_size = 0;
+
+    char multiline_string_terminator[TEXT_MEMORY_SIZE];
+    int  multiline_string_terminator_size = 0;
 
     auto mmultilinestringend = [&]() {
-        if(textmemorypointer < textterminatorsize) return false;
+        if(previous_text_ringbuffer_size < multiline_string_terminator_size) return false;
 
-        int indexMemory = (textmemorypointer + TEXT_MEMORY_SIZE - textterminatorsize) % TEXT_MEMORY_SIZE;
+        for(int iTerminator = 0; iTerminator != multiline_string_terminator_size; ++iTerminator) {
+            int iPreviousText = (iTerminator + previous_text_ringbuffer_size + TEXT_MEMORY_SIZE - multiline_string_terminator_size);
+            iPreviousText %= TEXT_MEMORY_SIZE;
 
-        for(int i = 0; i != textterminatorsize; ++i) {
-            int iMem = indexMemory % TEXT_MEMORY_SIZE;
-            int iTerm = i;
-
-            if(prevtextbuffer[iMem] != multilinestringterminator[iTerm]) return false;
-
-            indexMemory++;
+            if(previous_text_ringbuffer[iPreviousText] != multiline_string_terminator[iTerminator]) return false;
         }
 
         return true;
@@ -136,18 +132,22 @@ inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
     char c_crnt = 0;
     char terminator = 0;
 
-    if(pline) *pline = 1;
-    if(pcol)  *pcol = 1;
+    int tmp_integer = 0;
+    int & line = pline ? *pline : tmp_integer;
+    int & col  = pcol  ? *pcol  : tmp_integer;
+
+    line = 1;
+    col = 1;
 
     for(char * p = content; *p; ++p) {
         c_prev = c_crnt;
         c_crnt = *p;
 
         if(pline && pcol) {
-            (*pcol)++;
+            col++;
             if(c_crnt == '\n') {
-                (*pline)++;
-                *pcol = 1;
+                col = 1;
+                line++;
             }
         }
 
@@ -160,21 +160,23 @@ inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
                         terminator = c_crnt;
                         if(c_prev == 'R') {
                             p[-1] = SPACE;
+                            multiline_string_terminator[0] = ')';
+                            multiline_string_terminator_size = 1;
                             state = sanitize_state_multi_line_string_begin;
-                            multilinestringterminator[0] = ')';
-                            textterminatorsize = 1;
                         }
-                        else state = sanitize_state_simple_string;
+                        else {
+                            state = sanitize_state_simple_string;
+                        }
                     break; case '/':
                         if(c_prev == '/') {
-                            *(p-1) = SPACE;
-                            *p = SPACE;
+                            p[-1] = SPACE;
+                            p[0] = SPACE;
                             state = sanitize_state_single_line_comment;
                         }
                     break; case '*':
                         if(c_prev == '/') {
-                            *(p-1) = SPACE;
-                            *p = SPACE;
+                            p[-1] = SPACE;
+                            p[0] = SPACE;
                             state = sanitize_state_multi_line_comment;
                         }
                 }
@@ -193,26 +195,26 @@ inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
                 }
             }
             break; case sanitize_state_simple_string: {
-                if(c_crnt == terminator && c_prev != '\\') {
-                    state = sanitize_state_default;
+                if(c_prev == '\\') {
+                    *p = '?';
                 }
-                else {
-                    if(*p != '\n') *p = 'X';
+                else if(c_crnt == terminator) {
+                    state = sanitize_state_default;
                 }
             }
             break; case sanitize_state_multi_line_string_begin: {
-                if(textterminatorsize == TEXT_MEMORY_SIZE) {
-                    return sanitize_error_buffer_overflow;
-                }
-               
                 if(*p != '\n') *p = 'X';
 
                 if(c_crnt == '(') {
                     state = sanitize_state_multi_line_string;
                 }
                 else {
-                    multilinestringterminator[textterminatorsize] = c_crnt;
-                    textterminatorsize++;
+                    if(multiline_string_terminator_size == TEXT_MEMORY_SIZE) {
+                        return sanitize_error_buffer_overflow;
+                    }
+
+                    multiline_string_terminator[multiline_string_terminator_size] = c_crnt;
+                    multiline_string_terminator_size++;
                 }
             }
             break; case sanitize_state_multi_line_string: {
@@ -220,20 +222,21 @@ inline sanitize_error sanitize_string(char * content, int * pline, int * pcol) {
                     state = sanitize_state_default;
                     continue;
                 } else {
-                    if(textterminatorsize == TEXT_MEMORY_SIZE) {
+                    if(multiline_string_terminator_size == TEXT_MEMORY_SIZE) {
                         return sanitize_error_buffer_overflow;
                     }
                 }
 
-                prevtextbuffer[textmemorypointer % TEXT_MEMORY_SIZE] = c_crnt;
-                textmemorypointer++;
-                
+                previous_text_ringbuffer[previous_text_ringbuffer_size % TEXT_MEMORY_SIZE] = c_crnt;
+                previous_text_ringbuffer_size++;
+
                 if(*p != '\n') *p = 'X';
-            }            
+            }
         }
     }
 
-    if(state != sanitize_state_default) return sanitize_error_input_error;
+    if(state != sanitize_state_default) return sanitize_error_unexpected_end;
+
     return sanitize_error_OK;
 }
 
@@ -292,9 +295,11 @@ int main() {
         { "namespace_global"    ,R"___( "::" )___" },
         { "namespace"           ,R"___( <ident> "::" )___" },
         { "type"                ,R"___( <namespace_global>? <namespace>* <ident> )___" },
-        { "float"               ,R"___( /-?\d?.\d+[f]?/ )___" },
-        { "integer"             ,R"___( /-?\d+/ )___" },
-        { "number"              ,R"___( <float> | <integer> )___" },
+        { "float"               ,R"___( ('+' | '-')? /\d?.\d+[f]?/ )___" },
+        { "integerdec"          ,R"___( /\d+/ )___" },
+        { "integerhex"          ,R"___( "0x"/[0-9A-Fa-f]+/ )___" },
+        { "integer"             ,R"___( ('+' | '-')? (<integerhex> | <integerdec>) )___" },
+        { "number"              ,R"___( <integer> | <float>  )___" },
         { "character"           ,R"___( /'(\\.|[^'])*'/ )___" },
         { "string"              ,R"___( /"(\\.|[^"])*"/ )___" },
         { "assignment"          ,R"___( '=' <lexp> )___" },

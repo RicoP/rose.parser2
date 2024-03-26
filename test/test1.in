@@ -148,6 +148,10 @@ int main() {
   char c2 = 'rico';
   int n;
   int i = 0;
+
+  int x = 0xFF00ff;
+  int y = -42;
+  int z = +42;
   
   while (i < 10) {
     n = fib(10);
@@ -193,8 +197,22 @@ struct Vector3 {
   private:
     int x,y,z;
 
+
+    int a = 0xFF00ff;
+    int b = 42;
+    int c = 42;    
+    int b = -42;
+    int c = +42;
+
+    int d = 0;
+    int e = 07;
+    int f = 07;
+    
+
     // namespaces
     ::float f = .3f;
+    ::float f = -.3f;
+    ::float f = +.3f;
     std::string s1 = "Hello, world!\"";
     ::std::string s2 = "Hello, world!\"";
     ::rose::strings::const_string s3 = "Hello, world!\"";
