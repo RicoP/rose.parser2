@@ -269,9 +269,9 @@ struct MpcConfig {
                 int minimum_length = s_language_buffer_length + len;
                 if(minimum_length < MIN_BUFFER_SIZE) minimum_length = MIN_BUFFER_SIZE;
 
-                // new buffer size grows by the golden ratio to mimic the Fibonacci sequence...
-                s_language_buffer_length *= 1618;
-                s_language_buffer_length /= 1000;
+                // new buffer size grows by the golden ratio (g = 1.618 ~= 21/13) to mimic natural growth.
+                s_language_buffer_length *= 21;
+                s_language_buffer_length /= 13;
                 if(s_language_buffer_length < minimum_length) s_language_buffer_length = minimum_length;
 
                 s_language_buffer = (char *)realloc(s_language_buffer, s_language_buffer_length);
@@ -399,7 +399,8 @@ int main() {
         parser_array[i] = i < max ? config[i].parser : nullptr;
     }
 
-    //puts(s_language);
+    //puts(s_language_buffer);
+    //return 0;
 
     mpc_parser_t *Smallc = std::find_if(
         std::begin(config),
