@@ -269,9 +269,14 @@ struct MpcConfig {
                 int minimum_length = s_language_buffer_length + len;
                 if(minimum_length < MIN_BUFFER_SIZE) minimum_length = MIN_BUFFER_SIZE;
 
-                // new buffer size grows by the golden ratio (g = 1.618 ~= 21/13) to mimic natural growth.
-                s_language_buffer_length *= 21;
-                s_language_buffer_length /= 13;
+                // new buffer size grows by the golden ratio (g = 1.618 ~= 13255/8192) to mimic natural growth.
+                // we devide by 8192 and cast to a unsigned long long so the compiler can replace the div by a shift.
+                {
+                    unsigned long long L = s_language_buffer_length;
+                    L *= 13255;
+                    L /= 8192;
+                    s_language_buffer_length = (int)L;
+                }
                 if(s_language_buffer_length < minimum_length) s_language_buffer_length = minimum_length;
 
                 s_language_buffer = (char *)realloc(s_language_buffer, s_language_buffer_length);
